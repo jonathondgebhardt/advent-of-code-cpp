@@ -49,11 +49,16 @@ Stub code will be added, so all you have to do is fill in the blanks:
 ```cpp
 namespace
 {
-    struct Solver : public ACSolver
+    struct Solver
     {
+        using Answer = std::optional<int64_t>;
+        
+        // The day's input will be stored in the member mInput.
+        std::vector<std::string> mInput;
+
         Answer solvePartOne() override
         {
-            // The day's input will be stored in the member mInput. Other useful utility functions are provided, see Utilities.hpp.
+            // Other useful utility functions are provided, see Utilities.hpp.
             const auto ii = util::ContainerTo<int64_t>(mInput);
 
             // Solve part one.
@@ -67,14 +72,14 @@ namespace
 TEST(day_1, part_1)
 {
     // This part needs no changes.
-    const auto answer = CreateSolver(false).solvePartOne();
-    ASSERT_NE(answer, std::nullopt);
+    const auto answer = Solver::Build(false).solvePartOne();
+    ASSERT_TRUE(answer.has_value());
 
     // Once you know the answer, put it here and uncomment. This isn't strictly necessary.
     EXPECT_EQ(*answer, 1337);
 
     // This part also needs no changes. Assuming the previous assertion does not fail, your answer should be printed.
-    std::cout << "part one: " << *answer << std::endl;
+    std::println("part one: {}", *answer);
 }
 ```
 
