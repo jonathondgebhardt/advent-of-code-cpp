@@ -17,7 +17,8 @@
 std::string DAY;
 std::string YEAR;
 bool FORCE_OVERWRITE{false};
-bool DRY_RUN{false};
+bool NO_TOUCH{false};
+bool NO_DOWNLOAD{false};
 std::vector<std::string> CREATED_FILES;
 
 bool DayIsValid()
@@ -87,7 +88,7 @@ bool TryCreateSolutionDirectory(const std::string_view rootPath)
         return false;
     }
 
-    if(!DRY_RUN)
+    if(!NO_TOUCH)
     {
         std::filesystem::create_directory(rootPath);
         return std::filesystem::exists(rootPath);
@@ -101,7 +102,7 @@ bool CreateCMakeLists(const std::filesystem::path& x)
 {
     const auto cmakeLists = x / "CMakeLists.txt";
 
-    if(DRY_RUN)
+    if(NO_TOUCH)
     {
         std::println("Creating CMakeLists '{}'", cmakeLists.string());
         return true;
@@ -134,7 +135,7 @@ bool CreateSourceFiles(const std::filesystem::path& x)
 {
     const auto fullPath = x / std::format("{}.cpp", DAY);
 
-    if(DRY_RUN)
+    if(NO_TOUCH)
     {
         std::println("Creating source files '{}'", fullPath.string());
         return true;
@@ -175,7 +176,7 @@ bool DownloadInput()
     request.setUrl(std::format("https://adventofcode.com/{}/day/{}/input", YEAR, DAY));
     request.setContentType("text/plain");
 
-    if(DRY_RUN)
+    if(NO_DOWNLOAD)
     {
         // TODO: Add format support for HttpsRequest.
         std::println("Making HTTPS request for input...");
@@ -210,7 +211,7 @@ bool DownloadSampleInput()
     request.setUrl(std::format("https://adventofcode.com/{}/day/{}", YEAR, DAY));
     request.setContentType("text/html");
 
-    if(DRY_RUN)
+    if(NO_DOWNLOAD)
     {
         // TODO: Add format support for HttpsRequest.
         std::println("Making HTTPS request for sample input...");
@@ -253,8 +254,10 @@ int main(int argc, char** argv)
     options.add_options()
         ("day", "The day number to use", cxxopts::value<std::string>()->default_value(GetCurrentDayString()))
         ("year", "The year to use", cxxopts::value<std::string>()->default_value(GetCurrentYearString()))
-        ("dryrun", "Doesn't reach out to the network and doesn't touch the filesystem", cxxopts::value<bool>()->default_value("false"))
         ("f,force", "Force overwrite", cxxopts::value<bool>()->default_value("false"))
+        ("dry-run", "Don't reach out to the network and Don't touch the filesystem", cxxopts::value<bool>())
+        ("no-download", "Don't reach out to the network", cxxopts::value<bool>()->default_value("false"))
+        ("no-touch", "Don't touch the filesystem", cxxopts::value<bool>()->default_value("false"))
         ("h,help", "Shows this help message")
     ;
     // clang-format on
@@ -271,7 +274,23 @@ int main(int argc, char** argv)
             return EXIT_SUCCESS;
         }
 
-        DRY_RUN = result["dryrun"].as<bool>();
+        if(result.count("dry-run") == 1)
+        {
+            NO_TOUCH = true;
+            NO_DOWNLOAD = true;
+
+            // TODO: Log a warning if either of the others are present?
+            if(result.count("no-touch") > 0 || result.count("no-download") > 0)
+            {
+                std::println("Warning: --no-touch or --no-download passed with --dry-run");
+                std::println("Warning: --dry-run overrides");
+            }
+        }
+        else
+        {
+            NO_TOUCH = result["no-touch"].as<bool>();
+            NO_DOWNLOAD = result["no-download"].as<bool>();
+        }
 
         DAY = result["day"].as<std::string>();
         if(!DayIsValid())
