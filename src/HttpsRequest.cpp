@@ -1,6 +1,5 @@
-//
-// Created by jon on 10/29/23.
-//
+#include <iostream>
+#include <utility>
 
 #include "HttpsRequest.hpp"
 #include "InputDirectoryConfig.hpp"
@@ -10,21 +9,28 @@ namespace
 {
     std::optional<std::string> GetCookie()
     {
-        const auto sessionFile = config::GetInputFilePath() + "/.adventofcode.session";
-        if(const auto sessions = util::Parse(sessionFile); !sessions.empty())
+        const auto sessionFile =
+            std::format("{}/.adventofcode.session", config::GetInputFilePath());
+        if(const auto sessions = util::ParseToContainer(sessionFile); !sessions.empty())
         {
-            return "session=" + sessions.front();
+            return std::format("session={}", sessions.front());
         }
 
         return {};
     }
 
     // https://stackoverflow.com/questions/9786150/save-curl-content-result-into-a-string-in-c
+    // ReSharper disable CppParameterMayBeConst
+    // ReSharper disable IdentifierTypo
+    // ReSharper disable CppCStyleCast
     size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
     {
         ((std::string*)userp)->append((char*)contents, size * nmemb);
         return size * nmemb;
     }
+    // ReSharper restore CppCStyleCast
+    // ReSharper restore IdentifierTypo
+    // ReSharper restore CppParameterMayBeConst
 }
 
 HttpsRequest::HttpsRequest()
@@ -49,12 +55,18 @@ HttpsRequest::HttpsRequest()
 
     if(const auto cookie = GetCookie())
     {
-        curl_easy_setopt(mCurl, CURLOPT_COOKIE, (*cookie).c_str());
+        curl_easy_setopt(mCurl, CURLOPT_COOKIE, cookie->c_str());
     }
     else
     {
-        std::cerr << "Could not load session file\n";
+        std::println(std::cerr, "Could not load session file");
     }
+}
+
+HttpsRequest::HttpsRequest(HttpsRequest&& other) noexcept
+{
+    mCurl = std::exchange(other.mCurl, nullptr);
+    mReadBuffer = std::exchange(other.mReadBuffer, {});
 }
 
 HttpsRequest::~HttpsRequest()
@@ -64,30 +76,42 @@ HttpsRequest::~HttpsRequest()
         curl_easy_cleanup(mCurl);
     }
 
+    // TODO: CURL says this should be called once per application.
     curl_global_cleanup();
 }
 
-void HttpsRequest::setUrl(const std::string& url)
+HttpsRequest& HttpsRequest::operator=(HttpsRequest&& other) noexcept
 {
-    setUrl(url.c_str());
+    if(mCurl)
+    {
+        curl_easy_cleanup(mCurl);
+    }
+
+    // TODO: Don't repeat yourself.
+    mCurl = std::exchange(other.mCurl, nullptr);
+    mReadBuffer = std::exchange(other.mReadBuffer, {});
+
+    return *this;
 }
 
-void HttpsRequest::setUrl(const char* url)
+void HttpsRequest::setUrl(const std::string_view url) const
 {
-    curl_easy_setopt(mCurl, CURLOPT_URL, url);
+    if(curl_easy_setopt(mCurl, CURLOPT_URL, url.data()) == CURLE_OUT_OF_MEMORY)
+    {
+        throw std::runtime_error("curl: out of memory");
+    }
 }
 
-void HttpsRequest::setContentType(const std::string& type)
-{
-    setContentType(type.c_str());
-}
-
-void HttpsRequest::setContentType(const char* type)
+void HttpsRequest::setContentType(const std::string_view type) const
 {
     curl_slist* list = nullptr;
-    const std::string content = std::string("Content-Type: ") + type;
+    const auto content = std::format("Content-Type: {}", type);
     list = curl_slist_append(list, content.c_str());
-    curl_easy_setopt(mCurl, CURLOPT_HTTPHEADER, list);
+
+    if(curl_easy_setopt(mCurl, CURLOPT_HTTPHEADER, list) == CURLE_UNKNOWN_OPTION)
+    {
+        throw std::runtime_error("curl: unknown option");
+    }
 }
 
 std::optional<std::string> HttpsRequest::operator()() const
@@ -98,14 +122,12 @@ std::optional<std::string> HttpsRequest::operator()() const
         {
             return mReadBuffer;
         }
-        else
-        {
-            std::cerr << "Could not perform HTTPS request\n";
-        }
+
+        std::println(std::cerr, "Could not perform HTTPS request");
     }
     else
     {
-        std::cerr << "Could initialize CURL environment\n";
+        std::println(std::cerr, "Could not initialize CURL environment");
     }
 
     return {};

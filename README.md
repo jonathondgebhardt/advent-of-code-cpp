@@ -16,8 +16,16 @@ cmake ../
 cmake --build .
 ```
 
+### C++23
+This project is C++23, just because I don't have much experience with it and want to become more familiar. I didn't have any success building on Ubuntu 22.04 with gcc-11, gcc-12, or clang-15. I have been able to build on Fedora 40 with gcc-14 and on Windows with MSVC 17.?.
+
 ### perl dependency
 There is perl dependency for Linux users that is not retrieved by vcpkg. If you see CMake errors about IPC or perl, please get perl from your package manager.
+
+#### Fedora 40
+```sh
+sudo dnf install perl-IPC-Cmd perl-FindBin perl-Compare perl-File-Compare
+```
 
 ## Enabling downloading inputs
 `StartNewDay` will download your input for you, but in order to do that, it needs your session cookie. Login to https://adventofcode.com, press F12, and find your session token. On Firefox, this is located under the "Storage" tab then the "Cookies" menu. Paste the value into a file in the "inputs" subdirectory in a file called ".adventofcode.session".

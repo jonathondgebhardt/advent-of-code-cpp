@@ -1,23 +1,25 @@
 #pragma once
 
-#include <curl/curl.h>
 #include <optional>
 #include <string>
+#include <string_view>
+
+#include <curl/curl.h>
 
 class HttpsRequest
 {
   public:
     HttpsRequest();
+    HttpsRequest(const HttpsRequest&) = delete;
+    HttpsRequest(HttpsRequest&& other) noexcept;
+
     ~HttpsRequest();
 
-    HttpsRequest(const HttpsRequest&) = delete;
     HttpsRequest& operator=(const HttpsRequest&) = delete;
+    HttpsRequest& operator=(HttpsRequest&& other) noexcept;
 
-    void setUrl(const std::string& url);
-    void setUrl(const char* url);
-
-    void setContentType(const std::string& type);
-    void setContentType(const char* type);
+    void setUrl(std::string_view url) const;
+    void setContentType(std::string_view type) const;
 
     std::optional<std::string> operator()() const;
 

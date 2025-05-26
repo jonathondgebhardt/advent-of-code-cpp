@@ -15,4 +15,5 @@ AllowShortLoopsOnASingleLine: false
 IndentWidth: 4
 IndentAccessModifiers: false
 FixNamespaceComments: false
+AlwaysBreakTemplateDeclarations: true
 ...

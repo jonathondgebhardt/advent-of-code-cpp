@@ -1,0 +1,16 @@
+#pragma once
+
+#include <string>
+
+namespace config
+{
+    constexpr std::string GetInputFilePath()
+    {
+        return "@INPUT_FILE_PATH@";
+    }
+
+    constexpr std::string GetSolutionsPath()
+    {
+        return "@SOLUTIONS_PATH@";
+    }
+}
