@@ -16,8 +16,8 @@ include(cmake/variables.cmake)
 # ---- Declare library ----
 
 add_library(
-    advent-of-code-cpp_lib OBJECT
-    source/lib.cpp
+    advent-of-code-cpp_lib STATIC
+    src/Utilities.cpp
 )
 
 target_include_directories(
@@ -33,14 +33,23 @@ target_link_libraries(advent-of-code-cpp_lib PRIVATE fmt::fmt)
 
 # ---- Declare executable ----
 
-add_executable(advent-of-code-cpp_exe source/main.cpp)
+add_executable(advent-of-code-cpp_exe
+    src/HttpsRequest.cpp
+    src/StartNewDay.cpp
+)
 add_executable(advent-of-code-cpp::exe ALIAS advent-of-code-cpp_exe)
 
 set_property(TARGET advent-of-code-cpp_exe PROPERTY OUTPUT_NAME advent-of-code-cpp)
 
 target_compile_features(advent-of-code-cpp_exe PRIVATE cxx_std_23)
 
-target_link_libraries(advent-of-code-cpp_exe PRIVATE advent-of-code-cpp_lib)
+find_package(CURL CONFIG REQUIRED)
+find_package(cxxopts CONFIG REQUIRED)
+target_link_libraries(advent-of-code-cpp_exe PRIVATE 
+    advent-of-code-cpp_lib
+    CURL::libcurl 
+    cxxopts::cxxopts 
+)
 
 # ---- Install rules ----
 
