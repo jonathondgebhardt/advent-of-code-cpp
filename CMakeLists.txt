@@ -26,7 +26,7 @@ target_include_directories(
     "\$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/source>"
 )
 
-target_compile_features(advent-of-code-cpp_lib PUBLIC cxx_std_20)
+target_compile_features(advent-of-code-cpp_lib PUBLIC cxx_std_23)
 
 find_package(fmt REQUIRED)
 target_link_libraries(advent-of-code-cpp_lib PRIVATE fmt::fmt)
@@ -38,7 +38,7 @@ add_executable(advent-of-code-cpp::exe ALIAS advent-of-code-cpp_exe)
 
 set_property(TARGET advent-of-code-cpp_exe PROPERTY OUTPUT_NAME advent-of-code-cpp)
 
-target_compile_features(advent-of-code-cpp_exe PRIVATE cxx_std_20)
+target_compile_features(advent-of-code-cpp_exe PRIVATE cxx_std_23)
 
 target_link_libraries(advent-of-code-cpp_exe PRIVATE advent-of-code-cpp_lib)
 
