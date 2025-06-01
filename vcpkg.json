@@ -2,10 +2,8 @@
   "name": "advent-of-code-cpp",
   "version-semver": "0.1.0",
   "dependencies": [
-    {
-      "name": "fmt",
-      "version>=": "11.0.2#1"
-    }
+    "curl",
+    "cxxopts"
   ],
   "default-features": [],
   "features": {

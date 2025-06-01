@@ -15,9 +15,14 @@ include(cmake/variables.cmake)
 
 # ---- Declare library ----
 
+# Generate a file that allows source code to use paths in the project like "inputs".
+get_filename_component(INPUT_FILE_PATH "inputs" REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+set(SOLUTIONS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/solutions")
+configure_file(source/InputDirectoryConfig.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/source/InputDirectoryConfig.hpp)
+
 add_library(
     advent-of-code-cpp_lib STATIC
-    src/Utilities.cpp
+    source/Utilities.cpp
 )
 
 target_include_directories(
@@ -28,14 +33,11 @@ target_include_directories(
 
 target_compile_features(advent-of-code-cpp_lib PUBLIC cxx_std_23)
 
-find_package(fmt REQUIRED)
-target_link_libraries(advent-of-code-cpp_lib PRIVATE fmt::fmt)
-
 # ---- Declare executable ----
 
 add_executable(advent-of-code-cpp_exe
-    src/HttpsRequest.cpp
-    src/StartNewDay.cpp
+    source/HttpsRequest.cpp
+    source/StartNewDay.cpp
 )
 add_executable(advent-of-code-cpp::exe ALIAS advent-of-code-cpp_exe)
 

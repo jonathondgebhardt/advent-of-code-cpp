@@ -6,11 +6,11 @@ namespace config
 {
 constexpr std::string GetInputFilePath()
 {
-  return "@INPUT_FILE_PATH@";
+  return "/home/jon/Projects/advent-of-code-cpp/inputs";
 }
 
 constexpr std::string GetSolutionsPath()
 {
-  return "@SOLUTIONS_PATH@";
+  return "/home/jon/Projects/advent-of-code-cpp/solutions";
 }
 }  // namespace config
