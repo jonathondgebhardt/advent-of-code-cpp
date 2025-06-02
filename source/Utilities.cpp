@@ -1,18 +1,25 @@
+#include <format>
 #include <fstream>
 #include <iostream>
+#include <print>
+#include <sstream>
+#include <string>
+#include <string_view>
+#include <vector>
 
 #include "Utilities.hpp"
 
 #include "InputDirectoryConfig.hpp"
 
-std::string util::GetInputFile(const std::string_view stem)
+auto util::get_input_file(const std::string_view stem) -> std::string
 {
-  return std::format("{}/{}", config::GetInputFilePath(), stem);
+  return std::format("{}/{}", config::input_file_path, stem);
 }
 
-std::vector<std::string> util::ParseToContainer(const std::string_view filePath)
+auto util::parse_to_container(const std::string_view file_path)
+    -> std::vector<std::string>
 {
-  if (std::ifstream ifs {filePath.data()}; ifs.is_open()) {
+  if (std::ifstream ifs {file_path.data()}; ifs.is_open()) {
     std::vector<std::string> contents;
 
     for (std::string line; std::getline(ifs, line);) {
@@ -24,40 +31,40 @@ std::vector<std::string> util::ParseToContainer(const std::string_view filePath)
     return contents;
   }
 
-  std::println(std::cerr, "Could not open '{}'", filePath);
+  std::println(std::cerr, "Could not open '{}'", file_path);
 
   return {};
 }
 
-std::string util::Parse(const std::string_view filePath)
+auto util::parse(const std::string_view file_path) -> std::string
 {
-  if (std::ifstream ifs {filePath.data()}; ifs.is_open()) {
-    std::stringstream ss;
+  if (std::ifstream ifs {file_path.data()}; ifs.is_open()) {
+    std::stringstream stream;
 
     for (std::string line; std::getline(ifs, line);) {
-      ss << std::format("{}\n", line);
+      stream << std::format("{}\n", line);
     }
 
     // Add the trailing new line to preserve input representation.
-    ss << '\n';
+    stream << '\n';
 
-    return ss.str();
+    return stream.str();
   }
 
-  std::println(std::cerr, "Could not open '{}'", filePath);
+  std::println(std::cerr, "Could not open '{}'", file_path);
 
   return {};
 }
 
-std::vector<std::string> util::Split(const std::string_view x,
-                                     const char delimiter)
+auto util::split(const std::string_view string, const char delimiter)
+    -> std::vector<std::string>
 {
   std::vector<std::string> tokens;
 
-  std::stringstream ss {x.data()};
-  std::string s;
-  while (std::getline(ss, s, delimiter)) {
-    tokens.push_back(s);
+  std::stringstream stream {string.data()};
+  std::string line;
+  while (std::getline(stream, line, delimiter)) {
+    tokens.push_back(line);
   }
 
   return tokens;

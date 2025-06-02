@@ -6,24 +6,24 @@
 
 #include <curl/curl.h>
 
-class HttpsRequest
+class https_request
 {
 public:
-  HttpsRequest();
-  HttpsRequest(const HttpsRequest&) = delete;
-  HttpsRequest(HttpsRequest&& other) noexcept;
+  https_request();
+  https_request(const https_request&) = delete;
+  https_request(https_request&& other) noexcept;
 
-  ~HttpsRequest();
+  ~https_request();
 
-  HttpsRequest& operator=(const HttpsRequest&) = delete;
-  HttpsRequest& operator=(HttpsRequest&& other) noexcept;
+  auto operator=(const https_request&) -> https_request& = delete;
+  auto operator=(https_request&& other) noexcept -> https_request&;
 
-  void setUrl(std::string_view url) const;
-  void setContentType(std::string_view type) const;
+  void set_url(std::string_view url) const;
+  void set_content_type(std::string_view type) const;
 
-  std::optional<std::string> operator()() const;
+  auto operator()() const -> std::optional<std::string>;
 
 private:
-  CURL* mCurl = nullptr;
-  std::string mReadBuffer;
+  CURL* m_curl = nullptr;
+  std::string m_read_buffer;
 };

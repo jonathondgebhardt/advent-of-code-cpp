@@ -1,38 +1,42 @@
 #pragma once
 
 #include <algorithm>
+#include <span>
 #include <sstream>
 #include <string>
 #include <vector>
 
 namespace util
 {
-std::string GetInputFile(std::string_view stem);
+auto get_input_file(std::string_view stem) -> std::string;
 
-std::vector<std::string> ParseToContainer(std::string_view filePath);
+auto parse_to_container(std::string_view file_path) -> std::vector<std::string>;
 
-std::string Parse(std::string_view filePath);
+auto parse(std::string_view file_path) -> std::string;
 
 template<class T>
-T StringTo(std::string_view x)
+auto string_to(std::string_view string) -> T
 {
   T result;
-  std::stringstream ss {x.data()};
-  ss >> result;
+  std::stringstream stream {string.data()};
+  stream >> result;
 
   return result;
 }
 
 template<class T>
-std::vector<T> ContainerTo(const std::vector<std::string>& x)
+auto container_to(const std::span<const std::string>& container)
+    -> std::vector<T>
 {
   std::vector<T> converted;
-  std::ranges::transform(x,
+  std::ranges::transform(container,
                          std::back_inserter(converted),
-                         [](const auto& y) { return StringTo<T>(y); });
+                         [](const auto& string)
+                         { return string_to<T>(string); });
 
   return converted;
 }
 
-std::vector<std::string> Split(std::string_view x, char delimiter = ' ');
+auto split(std::string_view string, char delimiter = ' ')
+    -> std::vector<std::string>;
 }  // namespace util

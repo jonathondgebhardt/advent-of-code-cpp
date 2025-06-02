@@ -8,11 +8,11 @@
 
 namespace
 {
-std::optional<std::string> GetCookie()
+auto get_cookie() -> std::optional<std::string>
 {
-  const auto sessionFile =
-      std::format("{}/.adventofcode.session", config::GetInputFilePath());
-  if (const auto sessions = util::ParseToContainer(sessionFile);
+  const auto session_file =
+      std::format("{}/.adventofcode.session", config::input_file_path);
+  if (const auto sessions = util::parse_to_container(session_file);
       !sessions.empty())
   {
     return std::format("session={}", sessions.front());
@@ -22,95 +22,90 @@ std::optional<std::string> GetCookie()
 }
 
 // https://stackoverflow.com/questions/9786150/save-curl-content-result-into-a-string-in-c
-// ReSharper disable CppParameterMayBeConst
-// ReSharper disable IdentifierTypo
-// ReSharper disable CppCStyleCast
-size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
+auto write_callback(void* contents, size_t size, size_t nmemb, void* userp)
+    -> size_t
 {
   ((std::string*)userp)->append((char*)contents, size * nmemb);
   return size * nmemb;
 }
 
-// ReSharper restore CppCStyleCast
-// ReSharper restore IdentifierTypo
-// ReSharper restore CppParameterMayBeConst
 }  // namespace
 
-HttpsRequest::HttpsRequest()
+https_request::https_request()
+    : m_curl(curl_easy_init())
 {
   curl_global_init(CURL_GLOBAL_DEFAULT);
 
   // TODO: Could probably make sure we don't already have that file...
-  mCurl = curl_easy_init();
 
   // Disable progress bar
-  curl_easy_setopt(mCurl, CURLOPT_NOPROGRESS, 1L);
+  curl_easy_setopt(m_curl, CURLOPT_NOPROGRESS, 1L);
 
   // Read contents into mReadBuffer.
-  curl_easy_setopt(mCurl, CURLOPT_WRITEFUNCTION, WriteCallback);
-  curl_easy_setopt(mCurl, CURLOPT_WRITEDATA, &mReadBuffer);
+  curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, write_callback);
+  curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &m_read_buffer);
 
   // Include user agent information in the header
   // https://www.reddit.com/r/adventofcode/wiki/faqs/automation/
-  const auto userAgent =
+  const auto *const user_agent =
       "https://github.com/jonathondgebhardt/aoc-cli-cpp by "
       "jonathon.gebhardt@gmail.com";
-  curl_easy_setopt(mCurl, CURLOPT_USERAGENT, userAgent);
+  curl_easy_setopt(m_curl, CURLOPT_USERAGENT, user_agent);
 
-  if (const auto cookie = GetCookie()) {
-    curl_easy_setopt(mCurl, CURLOPT_COOKIE, cookie->c_str());
+  if (const auto cookie = get_cookie()) {
+    curl_easy_setopt(m_curl, CURLOPT_COOKIE, cookie->c_str());
   } else {
     std::println(std::cerr, "Could not load session file");
   }
 }
 
-HttpsRequest::HttpsRequest(HttpsRequest&& other) noexcept
+https_request::https_request(https_request&& other) noexcept
 {
-  mCurl = std::exchange(other.mCurl, nullptr);
-  mReadBuffer = std::exchange(other.mReadBuffer, {});
+  m_curl = std::exchange(other.m_curl, nullptr);
+  m_read_buffer = std::exchange(other.m_read_buffer, {});
 }
 
-HttpsRequest::~HttpsRequest()
+https_request::~https_request()
 {
-  if (mCurl) {
-    curl_easy_cleanup(mCurl);
+  if (m_curl != nullptr) {
+    curl_easy_cleanup(m_curl);
   }
 
   // TODO: CURL says this should be called once per application.
   curl_global_cleanup();
 }
 
-HttpsRequest& HttpsRequest::operator=(HttpsRequest&& other) noexcept
+auto https_request::operator=(https_request&& other) noexcept -> https_request&
 {
-  if (mCurl) {
-    curl_easy_cleanup(mCurl);
+  if (m_curl != nullptr) {
+    curl_easy_cleanup(m_curl);
   }
 
   // TODO: Don't repeat yourself.
-  mCurl = std::exchange(other.mCurl, nullptr);
-  mReadBuffer = std::exchange(other.mReadBuffer, {});
+  m_curl = std::exchange(other.m_curl, nullptr);
+  m_read_buffer = std::exchange(other.m_read_buffer, {});
 
   return *this;
 }
 
-void HttpsRequest::setUrl(const std::string_view url) const
+void https_request::set_url(const std::string_view url) const
 {
-  curl_easy_setopt(mCurl, CURLOPT_URL, url.data());
+  curl_easy_setopt(m_curl, CURLOPT_URL, url.data());
 }
 
-void HttpsRequest::setContentType(const std::string_view type) const
+void https_request::set_content_type(const std::string_view type) const
 {
   curl_slist* list = nullptr;
   const auto content = std::format("Content-Type: {}", type);
   list = curl_slist_append(list, content.c_str());
-  curl_easy_setopt(mCurl, CURLOPT_HTTPHEADER, list);
+  curl_easy_setopt(m_curl, CURLOPT_HTTPHEADER, list);
 }
 
-std::optional<std::string> HttpsRequest::operator()() const
+auto https_request::operator()() const -> std::optional<std::string>
 {
-  if (mCurl) {
-    if (curl_easy_perform(mCurl) == CURLE_OK) {
-      return mReadBuffer;
+  if (m_curl != nullptr) {
+    if (curl_easy_perform(m_curl) == CURLE_OK) {
+      return m_read_buffer;
     }
 
     std::println(std::cerr, "Could not perform HTTPS request");

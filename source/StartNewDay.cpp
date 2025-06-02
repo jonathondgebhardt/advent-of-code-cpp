@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <ctime>
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -6,14 +8,19 @@
 #include <optional>
 #include <print>
 #include <regex>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <vector>
 
 #include <cxxopts.hpp>
-#include <time.h>
 
 #include "HttpsRequest.hpp"
 #include "InputDirectoryConfig.hpp"
 #include "Utilities.hpp"
 
+namespace
+{
 std::string DAY;
 std::string YEAR;
 bool FORCE_OVERWRITE {false};
@@ -21,101 +28,101 @@ bool NO_TOUCH {false};
 bool NO_DOWNLOAD {false};
 std::vector<std::string> CREATED_FILES;
 
-bool DayIsValid()
+auto day_is_valid() -> bool
 {
-  const auto day = util::StringTo<int>(DAY);
+  const auto day = util::string_to<int>(DAY);
   return day >= 1 && day <= 31;
 }
 
-std::tm GetSystemTime()
+auto get_system_time() -> std::tm
 {
   // https://stackoverflow.com/a/58153628
   const std::time_t t = std::time(nullptr);
-  std::tm pTInfo;
+  std::tm p_t_info {};
 #ifdef WIN32
   if (localtime_s(&pTInfo, &t) == nullptr)
 #else
-  if (localtime_r(&t, &pTInfo) == nullptr)
+  if (localtime_r(&t, &p_t_info) == nullptr)
 #endif
   {
     throw std::runtime_error("failed to get system time");
   }
 
-  return pTInfo;
+  return p_t_info;
 }
 
-int GetCurrentYear()
+auto get_current_year() -> int
 {
-  const auto systemTime = GetSystemTime();
+  const auto system_time = get_system_time();
 
-  auto currentYear = 1900 + systemTime.tm_year;
+  auto current_year = 1900 + system_time.tm_year;
 
   // AoC starts December 1st. If it's not December yet, use the previous year.
-  if (systemTime.tm_mon < 11) {
-    --currentYear;
+  if (system_time.tm_mon < 11) {
+    --current_year;
   }
 
-  return currentYear;
+  return current_year;
 }
 
-std::string GetCurrentYearString()
+auto get_current_year_string() -> std::string
 {
-  return std::to_string(GetCurrentYear());
+  return std::to_string(get_current_year());
 }
 
-int GetCurrentDay()
+auto get_current_day() -> int
 {
-  return GetSystemTime().tm_mday;
+  return get_system_time().tm_mday;
 }
 
-std::string GetCurrentDayString()
+auto get_current_day_string() -> std::string
 {
-  return std::to_string(GetCurrentDay());
+  return std::to_string(get_current_day());
 }
 
-bool YearIsValid()
+auto year_is_valid() -> bool
 {
-  const auto year = util::StringTo<int>(YEAR);
-  return year >= 2015 && year <= GetCurrentYear();
+  const auto year = util::string_to<int>(YEAR);
+  return year >= 2015 && year <= get_current_year();
 }
 
-bool TryCreateSolutionDirectory(const std::string_view rootPath)
+auto try_create_solution_directory(const std::string_view root_path) -> bool
 {
-  if (std::filesystem::exists(rootPath) && !FORCE_OVERWRITE) {
+  if (std::filesystem::exists(root_path) && !FORCE_OVERWRITE) {
     std::println("Solution directory already exists");
     return false;
   }
 
   if (!NO_TOUCH) {
-    std::filesystem::create_directory(rootPath);
-    return std::filesystem::exists(rootPath);
+    std::filesystem::create_directory(root_path);
+    return std::filesystem::exists(root_path);
   }
 
-  std::println("Creating solution directory '{}'", rootPath);
+  std::println("Creating solution directory '{}'", root_path);
   return true;
 }
 
-bool CreateCMakeLists(const std::filesystem::path& x)
+auto create_cmake_lists(const std::filesystem::path& x) -> bool
 {
-  const auto cmakeLists = x / "CMakeLists.txt";
+  const auto cmake_lists = x / "CMakeLists.txt";
 
   if (NO_TOUCH) {
-    std::println("Creating CMakeLists '{}'", cmakeLists.string());
+    std::println("Creating CMakeLists '{}'", cmake_lists.string());
     return true;
   }
 
 #ifdef WIN32
-  const auto infile = "../CMakeLists.txt.in";
+  const auto* const infile = "../CMakeLists.txt.in";
 #else
-  const auto infile = "CMakeLists.txt.in";
+  const auto* const infile = "CMakeLists.txt.in";
 #endif
 
-  if (const auto contents = util::Parse(infile); !contents.empty()) {
-    if (std::ofstream ofs {cmakeLists}; ofs.is_open()) {
+  if (const auto contents = util::parse(infile); !contents.empty()) {
+    if (std::ofstream ofs {cmake_lists}; ofs.is_open()) {
       const std::regex re {"@DAY@"};
       ofs << std::regex_replace(contents, re, DAY);
 
-      CREATED_FILES.push_back(cmakeLists.string());
+      CREATED_FILES.push_back(cmake_lists.string());
 
       return true;
     }
@@ -125,27 +132,27 @@ bool CreateCMakeLists(const std::filesystem::path& x)
 }
 
 // TODO: Use an in-file for this?
-bool CreateSourceFiles(const std::filesystem::path& x)
+auto create_source_files(const std::filesystem::path& x) -> bool
 {
-  const auto fullPath = x / std::format("{}.cpp", DAY);
+  const auto full_path = x / std::format("{}.cpp", DAY);
 
   if (NO_TOUCH) {
-    std::println("Creating source files '{}'", fullPath.string());
+    std::println("Creating source files '{}'", full_path.string());
     return true;
   }
 
 #ifdef WIN32
-  const auto infile = "../Solution.cpp.in";
+  const auto* const infile = "../Solution.cpp.in";
 #else
-  const auto infile = "Solution.cpp.in";
+  const auto* const infile = "Solution.cpp.in";
 #endif
 
-  if (const auto contents = util::Parse(infile); !contents.empty()) {
-    if (std::ofstream ofs {fullPath}; ofs.is_open()) {
+  if (const auto contents = util::parse(infile); !contents.empty()) {
+    if (std::ofstream ofs {full_path}; ofs.is_open()) {
       const std::regex re {"@DAY@"};
       ofs << std::regex_replace(contents, re, DAY);
 
-      CREATED_FILES.push_back(fullPath.string());
+      CREATED_FILES.push_back(full_path.string());
 
       return true;
     }
@@ -154,19 +161,18 @@ bool CreateSourceFiles(const std::filesystem::path& x)
   return false;
 }
 
-bool DownloadInput()
+auto download_input() -> bool
 {
-  const auto fileName =
-      std::format("{}/{}.txt", config::GetInputFilePath(), DAY);
-  if (!FORCE_OVERWRITE && std::filesystem::exists(fileName)) {
-    std::println("Input file already exists: '{}'", fileName);
+  const auto file_name = std::format("{}/{}.txt", config::input_file_path, DAY);
+  if (!FORCE_OVERWRITE && std::filesystem::exists(file_name)) {
+    std::println("Input file already exists: '{}'", file_name);
     return true;
   }
 
-  HttpsRequest request;
-  request.setUrl(
+  https_request request;
+  request.set_url(
       std::format("https://adventofcode.com/{}/day/{}/input", YEAR, DAY));
-  request.setContentType("text/plain");
+  request.set_content_type("text/plain");
 
   if (NO_DOWNLOAD) {
     // TODO: Add format support for HttpsRequest.
@@ -175,12 +181,13 @@ bool DownloadInput()
   }
 
   if (const auto content = request()) {
-    if (std::ofstream ofs {config::GetInputFilePath() + "/" + DAY + ".txt"};
+    if (std::ofstream ofs {
+            std::format("{}/{}.txt", config::input_file_path, DAY)};
         ofs.is_open())
     {
       ofs << *content;
 
-      CREATED_FILES.push_back(fileName);
+      CREATED_FILES.push_back(file_name);
 
       return true;
     }
@@ -189,18 +196,18 @@ bool DownloadInput()
   return false;
 }
 
-bool DownloadSampleInput()
+auto download_sample_input() -> bool
 {
-  const auto fileName =
-      std::format("{}/{}_sample.txt", config::GetInputFilePath(), DAY);
-  if (!FORCE_OVERWRITE && std::filesystem::exists(fileName)) {
-    std::println("Input file already exists: '{}'", fileName);
+  const auto file_name =
+      std::format("{}/{}_sample.txt", config::input_file_path, DAY);
+  if (!FORCE_OVERWRITE && std::filesystem::exists(file_name)) {
+    std::println("Input file already exists: '{}'", file_name);
     return true;
   }
 
-  HttpsRequest request;
-  request.setUrl(std::format("https://adventofcode.com/{}/day/{}", YEAR, DAY));
-  request.setContentType("text/html");
+  https_request request;
+  request.set_url(std::format("https://adventofcode.com/{}/day/{}", YEAR, DAY));
+  request.set_content_type("text/html");
 
   if (NO_DOWNLOAD) {
     // TODO: Add format support for HttpsRequest.
@@ -212,15 +219,15 @@ bool DownloadSampleInput()
     // Beginning of sample input starts with "<pre><code>" and ends with
     // "</code></pre>" Ex: <pre><code>A Y B X C Z
     // </code></pre>
-    const std::string startTags = "<pre><code>";
-    const auto beginPos = content->find(startTags) + startTags.size();
-    const auto endTags = "</code></pre>";
-    const auto size = content->find(endTags) - beginPos;
+    const std::string start_tags = "<pre><code>";
+    const auto begin_pos = content->find(start_tags) + start_tags.size();
+    const auto* const end_tags = "</code></pre>";
+    const auto size = content->find(end_tags) - begin_pos;
 
-    if (std::ofstream ofs {fileName}; ofs.is_open()) {
-      ofs << content->substr(beginPos, size);
+    if (std::ofstream ofs {file_name}; ofs.is_open()) {
+      ofs << content->substr(begin_pos, size);
 
-      CREATED_FILES.push_back(fileName);
+      CREATED_FILES.push_back(file_name);
 
       return true;
     }
@@ -228,8 +235,9 @@ bool DownloadSampleInput()
 
   return false;
 }
+}  // namespace
 
-int main(int argc, char** argv)
+auto main(int argc, char** argv) -> int
 {
   cxxopts::Options options {"StartNewDay",
                             "Create C++ stub code for new Advent of Code "
@@ -238,8 +246,8 @@ int main(int argc, char** argv)
   // TODO: Positional arguments are not showing up in help
   // clang-format off
     options.add_options()
-        ("day", "The day number to use", cxxopts::value<std::string>()->default_value(GetCurrentDayString()))
-        ("year", "The year to use", cxxopts::value<std::string>()->default_value(GetCurrentYearString()))
+        ("day", "The day number to use", cxxopts::value<std::string>()->default_value(get_current_day_string()))
+        ("year", "The year to use", cxxopts::value<std::string>()->default_value(get_current_year_string()))
         ("f,force", "Force overwrite", cxxopts::value<bool>()->default_value("false"))
         ("dry-run", "Same as --no-download and --no-touch", cxxopts::value<bool>())
         ("no-download", "Don't reach out to the network", cxxopts::value<bool>()->default_value("false"))
@@ -253,12 +261,12 @@ int main(int argc, char** argv)
   try {
     const auto result = options.parse(argc, argv);
 
-    if (result.count("help")) {
+    if (result.count("help") != 0U) {
       std::cout << options.help() << "\n";
       return EXIT_SUCCESS;
     }
 
-    if (result.count("dry-run") == 1) {
+    if (result.count("dry-run") == 1U) {
       NO_TOUCH = true;
       NO_DOWNLOAD = true;
 
@@ -274,14 +282,14 @@ int main(int argc, char** argv)
     }
 
     DAY = result["day"].as<std::string>();
-    if (!DayIsValid()) {
+    if (!day_is_valid()) {
       std::println(
           std::cerr, "Error: '{}' must be between 1 and 31 inclusive", DAY);
       return EXIT_FAILURE;
     }
 
     YEAR = result["year"].as<std::string>();
-    if (!YearIsValid()) {
+    if (!year_is_valid()) {
       std::println(
           std::cerr,
           "Error: '{}' must be between 2015 and current year inclusive",
@@ -291,11 +299,11 @@ int main(int argc, char** argv)
 
     FORCE_OVERWRITE = result["force"].as<bool>();
 
-    const std::filesystem::path solutionsPath = config::GetSolutionsPath();
-    if (!std::filesystem::exists(solutionsPath)) {
+    const std::filesystem::path solutions_path = config::solutions_path;
+    if (!std::filesystem::exists(solutions_path)) {
       std::println(std::cerr,
                    "Error: Could not find solutions path '{}'",
-                   solutionsPath.string());
+                   solutions_path.string());
       return EXIT_FAILURE;
     }
 
@@ -305,37 +313,37 @@ int main(int argc, char** argv)
       std::println("Starting new day {}...", DAY);
     }
 
-    const auto newDayPath = solutionsPath / DAY;
-    if (!TryCreateSolutionDirectory(newDayPath.generic_string())) {
+    const auto new_day_path = solutions_path / DAY;
+    if (!try_create_solution_directory(new_day_path.generic_string())) {
       std::println(std::cerr,
                    "Could not create new subdirectory {}",
-                   newDayPath.string());
+                   new_day_path.string());
       std::cout << options.help() << "\n";
       std::println(std::cerr);
 
       return EXIT_FAILURE;
     }
 
-    if (!CreateCMakeLists(newDayPath)) {
+    if (!create_cmake_lists(new_day_path)) {
       std::println(std::cerr,
                    "Error: Could not create CMakeLists.txt for '{}'",
-                   newDayPath.string());
+                   new_day_path.string());
       return EXIT_FAILURE;
     }
 
-    if (!CreateSourceFiles(newDayPath)) {
+    if (!create_source_files(new_day_path)) {
       std::println(std::cerr,
                    "Error: Could not create source files for '{}'",
-                   newDayPath.string());
+                   new_day_path.string());
       return EXIT_FAILURE;
     }
 
-    if (!DownloadInput()) {
+    if (!download_input()) {
       std::println(std::cerr, "Error: Could not download input");
       return EXIT_FAILURE;
     }
 
-    if (!DownloadSampleInput()) {
+    if (!download_sample_input()) {
       // This is not a deal-breaker. Just grab it yourself ya bum.
       std::println(std::cerr,
                    "Warning: Could not download sample input. Continuing...");

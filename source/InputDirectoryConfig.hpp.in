@@ -1,16 +1,7 @@
 #pragma once
 
-#include <string>
-
 namespace config
 {
-constexpr std::string GetInputFilePath()
-{
-  return "@INPUT_FILE_PATH@";
-}
-
-constexpr std::string GetSolutionsPath()
-{
-  return "@SOLUTIONS_PATH@";
-}
+static const char* const input_file_path = "@INPUT_FILE_PATH@";
+static const char* const solutions_path = "@SOLUTIONS_PATH@";
 }  // namespace config
