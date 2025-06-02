@@ -6,16 +6,15 @@ macro(default name)
   endif()
 endmacro()
 
-default(FORMAT_COMMAND clang-format)
+default(TIDY_COMMAND clang-tidy)
 default(
     PATTERNS
     source/*.cpp source/*.hpp
-    include/*.hpp
     test/*.cpp test/*.hpp
 )
 default(FIX NO)
 
-set(flag --output-replacements-xml)
+set(flag --header-filter=^{CMAKE_SOURCE_DIR})
 set(args OUTPUT_VARIABLE output)
 if(FIX)
   set(flag -i)
@@ -23,29 +22,39 @@ if(FIX)
 endif()
 
 file(GLOB_RECURSE files ${PATTERNS})
-set(badly_formatted "")
+set(linty_files "")
 set(output "")
+set(fix_available FALSE)
 string(LENGTH "${CMAKE_SOURCE_DIR}/" path_prefix_length)
 
 foreach(file IN LISTS files)
   execute_process(
-      COMMAND "${FORMAT_COMMAND}" --style=file "${flag}" "${file}"
+      COMMAND "${TIDY_COMMAND}" --use-color "${flag}" "${file}"
       WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
       RESULT_VARIABLE result
       ${args}
   )
   if(NOT result EQUAL "0")
-    message(FATAL_ERROR "'${file}': formatter returned with ${result}")
+    message(FATAL_ERROR "'${file}': linter returned with ${result}")
   endif()
-  if(NOT FIX AND output MATCHES "\n<replacement offset")
-    string(SUBSTRING "${file}" "${path_prefix_length}" -1 relative_file)
-    list(APPEND badly_formatted "${relative_file}")
+  if(NOT FIX)
+    if(output MATCHES ": warning:")
+      string(SUBSTRING "${file}" "${path_prefix_length}" -1 relative_file)
+      list(APPEND linty_files "${relative_file}")
+    endif()
+    if(output MATCHES "fix available")
+        set(fix_available TRUE)
+    endif()
   endif()
+  message(STATUS ${output})
   set(output "")
 endforeach()
 
-if(NOT badly_formatted STREQUAL "")
-  list(JOIN badly_formatted "\n" bad_list)
-  message("The following files are badly formatted:\n\n${bad_list}\n")
-  message(FATAL_ERROR "Run again with FIX=YES to fix these files.")
+if(NOT linty_files STREQUAL "")
+  list(JOIN linty_files "\n" bad_list)
+  message("The following files have lint:\n\n${bad_list}\n")
+
+  if(fix_available)
+    message(FATAL_ERROR "Run again with FIX=YES to fix these files.")
+  endif()
 endif()
