@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <ctime>
+#include <exception>
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -210,7 +211,7 @@ auto download_sample_input() -> bool
         return true;
     }
 
-    https_request request;
+    const https_request request;
     request.set_url(
         std::format("https://adventofcode.com/{}/day/{}", YEAR, DAY));
     request.set_content_type("text/html");

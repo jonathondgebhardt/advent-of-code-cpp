@@ -1,7 +1,16 @@
+#include <cstddef>
+#include <format>
 #include <iostream>
+#include <optional>
+#include <print>
+#include <string>
+#include <string_view>
 #include <utility>
 
 #include "HttpsRequest.hpp"
+
+#include <curl/curl.h>
+#include <curl/easy.h>
 
 #include "InputDirectoryConfig.hpp"
 #include "Utilities.hpp"
@@ -23,9 +32,9 @@ auto get_cookie() -> std::optional<std::string>
 
 // https://stackoverflow.com/questions/9786150/save-curl-content-result-into-a-string-in-c
 auto write_callback(void* contents,
-                    size_t size,
-                    size_t nmemb,
-                    void* userp) -> size_t
+                    std::size_t size,
+                    std::size_t nmemb,
+                    void* userp) -> std::size_t
 {
     ((std::string*)userp)->append((char*)contents, size * nmemb);
     return size * nmemb;
