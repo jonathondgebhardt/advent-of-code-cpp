@@ -18,7 +18,7 @@ include(cmake/variables.cmake)
 # Generate a file that allows source code to use paths in the project like "inputs".
 get_filename_component(INPUT_FILE_PATH "inputs" REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 set(SOLUTIONS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/solutions")
-configure_file(source/InputDirectoryConfig.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/source/InputDirectoryConfig.hpp)
+configure_file(source/InputDirectoryConfig.hpp.in ${PROJECT_BINARY_DIR}/source/InputDirectoryConfig.hpp)
 
 add_library(
     advent-of-code-cpp_lib STATIC
@@ -29,6 +29,12 @@ target_include_directories(
     advent-of-code-cpp_lib ${warning_guard}
     PUBLIC
     "\$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/source>"
+)
+
+target_include_directories(
+    advent-of-code-cpp_lib ${warning_guard}
+    PUBLIC
+    "\$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/source>"
 )
 
 target_compile_features(advent-of-code-cpp_lib PUBLIC cxx_std_23)
