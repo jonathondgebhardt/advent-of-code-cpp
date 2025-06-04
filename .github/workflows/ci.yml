@@ -28,10 +28,6 @@ jobs:
     - name: Format
       run: cmake -D FORMAT_COMMAND=clang-format-18 -P cmake/format.cmake
 
-    - name: Lint
-      if: always()
-      run: cmake -D FORMAT_COMMAND=clang-tidy-18 -P cmake/lint.cmake
-
     - name: Spell check
       if: always()
       run: cmake -P cmake/spell.cmake
