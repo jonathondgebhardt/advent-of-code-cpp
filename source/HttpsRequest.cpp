@@ -36,7 +36,8 @@ auto write_callback(void* contents,
                     std::size_t nmemb,
                     void* userp) -> std::size_t
 {
-    ((std::string*)userp)->append((char*)contents, size * nmemb);
+    static_cast<std::string*>(userp)->append(static_cast<char*>(contents),
+                                             size * nmemb);
     return size * nmemb;
 }
 
