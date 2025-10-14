@@ -1,84 +1,82 @@
-cmake_minimum_required(VERSION 3.0...3.5)
+cmake_minimum_required(VERSION 3.14)
 
-# Must be done before the first call to project()
-# https://github.com/Microsoft/vcpkg#vcpkg-with-visual-studio-cmake-projects
-set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
+include(cmake/prelude.cmake)
 
-# Save on initial build time by only building vcpkg packages in release.
-set(VCPKG_OVERLAY_TRIPLETS "${CMAKE_CURRENT_LIST_DIR}/triplets")
+project(
+    advent-of-code-cpp
+    VERSION 0.1.0
+    DESCRIPTION "Short description"
+    HOMEPAGE_URL "https://example.com/"
+    LANGUAGES CXX
+)
 
-# TODO: Make a variable to describe the year?
-project(AOC CXX)
+include(cmake/project-is-top-level.cmake)
+include(cmake/variables.cmake)
 
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CONFIGURATION_TYPES Debug Release CACHE STRING INTERNAL FORCE)
-
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-
-if(WIN32)
-    set(CMAKE_CXX_FLAGS_DEBUG_INIT "/Zi /Od")
-    set(CMAKE_CXX_FLAGS_RELEASE_INIT "/O2")
-else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++23")
-    set(CMAKE_CXX_FLAGS_DEBUG_INIT "-g -Wall")
-    set(CMAKE_CXX_FLAGS_RELEASE_INIT "-O3")
-endif()
-
-include_directories(src)
+# ---- Declare library ----
 
 # Generate a file that allows source code to use paths in the project like "inputs".
 get_filename_component(INPUT_FILE_PATH "inputs" REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 set(SOLUTIONS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/solutions")
-configure_file(src/InputDirectoryConfig.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/src/InputDirectoryConfig.hpp)
+configure_file(source/InputDirectoryConfig.hpp.in ${PROJECT_BINARY_DIR}/source/InputDirectoryConfig.hpp)
 
-set(AOC_SOURCE_H
-    src/InputDirectoryConfig.hpp
-    src/Utilities.ipp
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/source/CMakeLists.txt.in DESTINATION ${PROJECT_BINARY_DIR}/source)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/source/Solution.cpp.in DESTINATION ${PROJECT_BINARY_DIR}/source)
+
+add_library(
+    advent-of-code-cpp_lib STATIC
+    source/Utilities.cpp
 )
 
-set(AOC_SOURCE
-    src/Utilities.cpp
+target_include_directories(
+    advent-of-code-cpp_lib ${warning_guard}
+    PUBLIC
+    "\$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/source>"
 )
 
-add_library(AOC STATIC
-    ${AOC_SOURCE_H}
-    ${AOC_SOURCE}
+target_include_directories(
+    advent-of-code-cpp_lib ${warning_guard}
+    PUBLIC
+    "\$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/source>"
 )
+
+target_compile_features(advent-of-code-cpp_lib PUBLIC cxx_std_23)
+
+# ---- Declare executable ----
+
+add_executable(advent-of-code-cpp_exe
+    source/HttpsRequest.cpp
+    source/StartNewDay.cpp
+)
+add_executable(advent-of-code-cpp::exe ALIAS advent-of-code-cpp_exe)
+
+set_property(TARGET advent-of-code-cpp_exe PROPERTY OUTPUT_NAME advent-of-code-cpp)
+
+target_compile_features(advent-of-code-cpp_exe PRIVATE cxx_std_23)
 
 find_package(CURL CONFIG REQUIRED)
 find_package(cxxopts CONFIG REQUIRED)
-add_executable(StartNewDay src/StartNewDay.cpp src/HttpsRequest.cpp src/HttpsRequest.hpp)
-target_link_libraries(StartNewDay PRIVATE 
+target_link_libraries(advent-of-code-cpp_exe PRIVATE 
+    advent-of-code-cpp_lib
     CURL::libcurl 
     cxxopts::cxxopts 
-    AOC
 )
 
-if(MSVC)
-    set(WINDOWS_VCPKG_BIN_RELEASE ${VCPKG_INSTALLED_DIR}/x64-windows/bin)
-    set(WINDOWS_VCPKG_BIN_DEBUG ${VCPKG_INSTALLED_DIR}/x64-windows/debug/bin)
+# ---- Install rules ----
 
-    file(COPY ${WINDOWS_VCPKG_BIN_RELEASE}/libcurl.dll DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Release)
-    file(COPY ${WINDOWS_VCPKG_BIN_DEBUG}/libcurl-d.dll DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Debug)
-
-    file(COPY ${WINDOWS_VCPKG_BIN_RELEASE}/gtest.dll DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Release)
-    file(COPY ${WINDOWS_VCPKG_BIN_DEBUG}/gtest.dll DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Debug)
-
-    file(COPY ${WINDOWS_VCPKG_BIN_RELEASE}/zlib1.dll DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Release)
-    file(COPY ${WINDOWS_VCPKG_BIN_DEBUG}/zlibd1.dll DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Debug)
-
-    set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-    set_target_properties(AOC PROPERTIES FOLDER "Utilities")
-    set_target_properties(StartNewDay PROPERTIES FOLDER "Utilities")
+if(NOT CMAKE_SKIP_INSTALL_RULES)
+  include(cmake/install-rules.cmake)
 endif()
 
-# TODO: Put in a different directory?
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/CMakeLists.txt.in DESTINATION ${CMAKE_BINARY_DIR}/bin)
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/Solution.cpp.in DESTINATION ${CMAKE_BINARY_DIR}/bin)
+# ---- Developer mode ----
 
-enable_testing()
-find_package(GTest CONFIG REQUIRED)
-add_subdirectory(solutions)
+if(NOT advent-of-code-cpp_DEVELOPER_MODE)
+  return()
+elseif(NOT PROJECT_IS_TOP_LEVEL)
+  message(
+      AUTHOR_WARNING
+      "Developer mode is intended for developers of advent-of-code-cpp"
+  )
+endif()
+
+include(cmake/dev-mode.cmake)
