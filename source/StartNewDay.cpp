@@ -116,13 +116,7 @@ auto create_cmake_lists(const std::filesystem::path& path) -> bool
         return true;
     }
 
-#ifdef WIN32
-    const auto* const infile = "../CMakeLists.txt.in";
-#else
-    const auto* const infile = "CMakeLists.txt.in";
-#endif
-
-    if (const auto contents = util::parse(infile); !contents.empty()) {
+    if (const auto contents = util::parse("source/CMakeLists.txt.in"); !contents.empty()) {
         if (std::ofstream ofs{cmake_lists}; ofs.is_open()) {
             const std::regex exp{"@DAY@"};
             ofs << std::regex_replace(contents, exp, DAY);
@@ -146,13 +140,7 @@ auto create_source_files(const std::filesystem::path& path) -> bool
         return true;
     }
 
-#ifdef WIN32
-    const auto* const infile = "../Solution.cpp.in";
-#else
-    const auto* const infile = "Solution.cpp.in";
-#endif
-
-    if (const auto contents = util::parse(infile); !contents.empty()) {
+    if (const auto contents = util::parse("source/Solution.cpp.in"); !contents.empty()) {
         if (std::ofstream ofs{full_path}; ofs.is_open()) {
             const std::regex exp{"@DAY@"};
             ofs << std::regex_replace(contents, exp, DAY);

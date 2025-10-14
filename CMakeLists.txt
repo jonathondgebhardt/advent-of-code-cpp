@@ -20,6 +20,9 @@ get_filename_component(INPUT_FILE_PATH "inputs" REALPATH BASE_DIR "${CMAKE_CURRE
 set(SOLUTIONS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/solutions")
 configure_file(source/InputDirectoryConfig.hpp.in ${PROJECT_BINARY_DIR}/source/InputDirectoryConfig.hpp)
 
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/source/CMakeLists.txt.in DESTINATION ${PROJECT_BINARY_DIR}/source)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/source/Solution.cpp.in DESTINATION ${PROJECT_BINARY_DIR}/source)
+
 add_library(
     advent-of-code-cpp_lib STATIC
     source/Utilities.cpp
